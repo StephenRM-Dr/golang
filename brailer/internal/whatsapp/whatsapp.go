@@ -11,6 +11,7 @@ import (
 
 	"example.com/m/v2/internal/models"
 	"github.com/mdp/qrterminal/v3"
+	_ "github.com/lib/pq" // Driver de Postgres
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/store/sqlstore"
@@ -36,20 +37,32 @@ var (
 	waContainer   *sqlstore.Container
 )
 
-// Connect establece la conexión con WhatsApp, manejando la sesión en SQLite.
+// Connect establece la conexión con WhatsApp, manejando la sesión en PostgreSQL si está disponible, o SQLite como fallback.
 func Connect() (*WAClient, error) {
 	if waContainer == nil {
 		dbLog := waLog.Stdout("Database", "ERROR", true)
 		
-		// Permitir configurar la ruta de la base de datos para persistencia en Railway
-		dbPath := os.Getenv("WA_DB_PATH")
-		if dbPath == "" {
-			dbPath = "whatsapp_final_v6.db"
+		var driver string
+		var dsn string
+
+		// Intentar usar PostgreSQL (Neon) para persistencia en la nube
+		pgUrl := os.Getenv("DATABASE_URL")
+		if pgUrl != "" {
+			driver = "postgres"
+			dsn = pgUrl
+			fmt.Println("🚀 WhatsApp: Usando PostgreSQL para persistencia de sesión.")
+		} else {
+			// Fallback local a SQLite
+			dbPath := os.Getenv("WA_DB_PATH")
+			if dbPath == "" {
+				dbPath = "whatsapp_final_v6.db"
+			}
+			driver = "sqlite3"
+			dsn = fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(10000)&cache=shared", dbPath)
+			fmt.Println("💻 WhatsApp: Usando SQLite local para persistencia de sesión.")
 		}
 		
-		// Optimizamos para evitar SQLITE_BUSY: WAL mode, busy_timeout y cache compartido
-		dsn := fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(10000)&cache=shared", dbPath)
-		container, err := sqlstore.New(context.Background(), "sqlite3", dsn, dbLog)
+		container, err := sqlstore.New(context.Background(), driver, dsn, dbLog)
 		if err != nil {
 			return nil, err
 		}
