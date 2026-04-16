@@ -1,0 +1,24 @@
+# Binarios y Ejecutables
+*.exe
+brailer/brailer.exe
+
+# WhatsApp y Persistencia
+*.db
+*.db-shm
+*.db-wal
+brailer/cargas-brailer/
+brailer/uploads/
+
+# Node.js / Next.js
+node_modules/
+brailer-web/node_modules/
+brailer-web/.next/
+brailer-web/out/
+brailer-web/build/
+.env*.local
+
+# Otros
+.DS_Store
+dist/
+bin/
+.agents/

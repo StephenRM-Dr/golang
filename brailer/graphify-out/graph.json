@@ -1,0 +1,312 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "label": "main.go",
+      "file_type": "code",
+      "source_file": "main.go",
+      "source_location": "L1",
+      "id": "main",
+      "community": 0
+    },
+    {
+      "label": "Transaccion",
+      "file_type": "code",
+      "source_file": "main.go",
+      "source_location": "L16",
+      "id": "main_transaccion",
+      "community": 0
+    },
+    {
+      "label": "limpiarTexto()",
+      "file_type": "code",
+      "source_file": "main.go",
+      "source_location": "L27",
+      "id": "main_limpiartexto",
+      "community": 0
+    },
+    {
+      "label": "inicializarDB()",
+      "file_type": "code",
+      "source_file": "main.go",
+      "source_location": "L41",
+      "id": "main_inicializardb",
+      "community": 0
+    },
+    {
+      "label": "crearRegistro()",
+      "file_type": "code",
+      "source_file": "main.go",
+      "source_location": "L66",
+      "id": "main_crearregistro",
+      "community": 0
+    },
+    {
+      "label": "leerRegistros()",
+      "file_type": "code",
+      "source_file": "main.go",
+      "source_location": "L104",
+      "id": "main_leerregistros",
+      "community": 0
+    },
+    {
+      "label": "eliminarRegistro()",
+      "file_type": "code",
+      "source_file": "main.go",
+      "source_location": "L122",
+      "id": "main_eliminarregistro",
+      "community": 0
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "main.go",
+      "source_location": "L138",
+      "id": "main_main",
+      "community": 0
+    },
+    {
+      "label": "Brailer Entrypoint",
+      "file_type": "code",
+      "source_file": "main.go",
+      "id": "main_brailer",
+      "community": 1
+    },
+    {
+      "label": "Transaccion Data Structure",
+      "file_type": "code",
+      "source_file": "main.go",
+      "id": "transaccion_struct",
+      "community": 1
+    },
+    {
+      "label": "SQLite Database",
+      "file_type": "code",
+      "source_file": "brailer_ledger.db",
+      "id": "sqlite_db",
+      "community": 1
+    },
+    {
+      "label": "Text Cleaning Utility",
+      "file_type": "code",
+      "source_file": "main.go",
+      "id": "limpiador_texto",
+      "community": 2
+    },
+    {
+      "label": "AI Interaction Rules",
+      "file_type": "document",
+      "source_file": "GEMINI.md",
+      "id": "gemini_rules",
+      "community": 1
+    },
+    {
+      "label": "Graphify Knowledge Graph",
+      "file_type": "document",
+      "source_file": "graphify-out/",
+      "id": "graphify_out",
+      "community": 1
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.go",
+      "source_location": "L16",
+      "weight": 1.0,
+      "_src": "main",
+      "_tgt": "main_transaccion",
+      "source": "main",
+      "target": "main_transaccion",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.go",
+      "source_location": "L27",
+      "weight": 1.0,
+      "_src": "main",
+      "_tgt": "main_limpiartexto",
+      "source": "main",
+      "target": "main_limpiartexto",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.go",
+      "source_location": "L41",
+      "weight": 1.0,
+      "_src": "main",
+      "_tgt": "main_inicializardb",
+      "source": "main",
+      "target": "main_inicializardb",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.go",
+      "source_location": "L66",
+      "weight": 1.0,
+      "_src": "main",
+      "_tgt": "main_crearregistro",
+      "source": "main",
+      "target": "main_crearregistro",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.go",
+      "source_location": "L104",
+      "weight": 1.0,
+      "_src": "main",
+      "_tgt": "main_leerregistros",
+      "source": "main",
+      "target": "main_leerregistros",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.go",
+      "source_location": "L122",
+      "weight": 1.0,
+      "_src": "main",
+      "_tgt": "main_eliminarregistro",
+      "source": "main",
+      "target": "main_eliminarregistro",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.go",
+      "source_location": "L138",
+      "weight": 1.0,
+      "_src": "main",
+      "_tgt": "main_main",
+      "source": "main",
+      "target": "main_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "main.go",
+      "source_location": "L75",
+      "weight": 1.0,
+      "_src": "main_crearregistro",
+      "_tgt": "main_limpiartexto",
+      "source": "main_limpiartexto",
+      "target": "main_crearregistro",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "main.go",
+      "source_location": "L139",
+      "weight": 1.0,
+      "_src": "main_main",
+      "_tgt": "main_inicializardb",
+      "source": "main_inicializardb",
+      "target": "main_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "main.go",
+      "source_location": "L158",
+      "weight": 1.0,
+      "_src": "main_main",
+      "_tgt": "main_crearregistro",
+      "source": "main_crearregistro",
+      "target": "main_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "main.go",
+      "source_location": "L123",
+      "weight": 1.0,
+      "_src": "main_eliminarregistro",
+      "_tgt": "main_leerregistros",
+      "source": "main_leerregistros",
+      "target": "main_eliminarregistro",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "main.go",
+      "source_location": "L160",
+      "weight": 1.0,
+      "_src": "main_main",
+      "_tgt": "main_leerregistros",
+      "source": "main_leerregistros",
+      "target": "main_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "main.go",
+      "source_location": "L162",
+      "weight": 1.0,
+      "_src": "main_main",
+      "_tgt": "main_eliminarregistro",
+      "source": "main_eliminarregistro",
+      "target": "main_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.go",
+      "_src": "main_brailer",
+      "_tgt": "sqlite_db",
+      "source": "main_brailer",
+      "target": "sqlite_db"
+    },
+    {
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.go",
+      "_src": "main_brailer",
+      "_tgt": "transaccion_struct",
+      "source": "main_brailer",
+      "target": "transaccion_struct"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "main.go",
+      "_src": "main_brailer",
+      "_tgt": "gemini_rules",
+      "source": "main_brailer",
+      "target": "gemini_rules"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "GEMINI.md",
+      "_src": "gemini_rules",
+      "_tgt": "graphify_out",
+      "source": "gemini_rules",
+      "target": "graphify_out"
+    }
+  ],
+  "hyperedges": []
+}
