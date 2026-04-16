@@ -8,8 +8,8 @@ RUN apk add --no-cache ca-certificates git
 # Copiamos las dependencias desde la raíz
 COPY go.mod go.sum ./
 
-# Truco: Forzamos la versión 1.24 en el servidor, ignorando si localmente se subió como 1.25
-RUN sed -i 's/^go .*/go 1.24/' go.mod
+# Permitimos que Go descargue versiones más recientes de sí mismo si el proyecto lo requiere (ej. Go 1.25)
+ENV GOTOOLCHAIN=auto
 
 RUN go mod download
 
