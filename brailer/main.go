@@ -36,6 +36,15 @@ func main() {
 	}
 	defer database.Close()
 
+	// Iniciar Servidor API inmediatamente para pasar Health Checks
+	fmt.Printf("🚀 Iniciando API Server en puerto %s...\n", port)
+	apiServer := api.NewServer(database, nil)
+	go func() {
+		if err := apiServer.Start(port); err != nil {
+			log.Printf("❌ Error crítico en API Server: %v", err)
+		}
+	}()
+
 	// Iniciar WhatsApp en segundo plano
 	fmt.Println("⏳ Inicializando WhatsApp...")
 	go func() {
@@ -45,13 +54,8 @@ func main() {
 			return
 		}
 		waClient = client
+		apiServer.SetWhatsAppClient(waClient)
 		fmt.Println("\n✅ WhatsApp Conectado.")
-
-		// Iniciar API Server
-		apiServer := api.NewServer(database, waClient)
-		if err := apiServer.Start(port); err != nil {
-			log.Printf("❌ Error en API Server: %v", err)
-		}
 	}()
 
 	// Solo ejecutar el loop interactivo si estamos en una terminal (TTY)

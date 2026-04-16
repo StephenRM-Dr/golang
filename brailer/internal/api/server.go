@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync" // Añadido para manejo seguro del cliente de WhatsApp
 	"time"
-
 	"example.com/m/v2/internal/db"
 	"example.com/m/v2/internal/export"
 	"example.com/m/v2/internal/models"
@@ -22,6 +22,7 @@ import (
 type Server struct {
 	db       *sql.DB
 	waClient *whatsapp.WAClient
+	mu       sync.RWMutex // Protege el acceso a waClient
 }
 
 func NewServer(database *sql.DB, wa *whatsapp.WAClient) *Server {
@@ -29,6 +30,13 @@ func NewServer(database *sql.DB, wa *whatsapp.WAClient) *Server {
 		db:       database,
 		waClient: wa,
 	}
+}
+
+// SetWhatsAppClient permite inyectar el cliente una vez conectado
+func (s *Server) SetWhatsAppClient(wa *whatsapp.WAClient) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.waClient = wa
 }
 
 func (s *Server) Start(port string) error {
@@ -206,7 +214,11 @@ func (s *Server) handleSendWhatsApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if s.waClient == nil {
+	s.mu.RLock()
+	wa := s.waClient
+	s.mu.RUnlock()
+
+	if wa == nil {
 		http.Error(w, "WhatsApp not connected", http.StatusServiceUnavailable)
 		return
 	}
@@ -230,7 +242,7 @@ func (s *Server) handleSendWhatsApp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go func() {
-		err := s.waClient.SendTransaction(targetJID, t)
+		err := wa.SendTransaction(targetJID, t)
 		if err != nil {
 			log.Printf("Error sending WhatsApp ID %d: %v", id, err)
 		}
@@ -241,9 +253,13 @@ func (s *Server) handleSendWhatsApp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleWhatsAppStatus(w http.ResponseWriter, r *http.Request) {
-	if s.waClient == nil {
+	s.mu.RLock()
+	wa := s.waClient
+	s.mu.RUnlock()
+
+	if wa == nil {
 		// Intentar recuperar de GlobalWA si el servidor local no lo tiene
-		s.waClient = whatsapp.GlobalWA
+		wa = whatsapp.GlobalWA
 	}
 
 	status := map[string]interface{}{
@@ -251,9 +267,9 @@ func (s *Server) handleWhatsAppStatus(w http.ResponseWriter, r *http.Request) {
 		"qr":        "",
 	}
 
-	if s.waClient != nil {
-		status["connected"] = s.waClient.IsConnected
-		status["qr"] = s.waClient.QRCode
+	if wa != nil {
+		status["connected"] = wa.IsConnected
+		status["qr"] = wa.QRCode
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -261,12 +277,16 @@ func (s *Server) handleWhatsAppStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleWhatsAppLogout(w http.ResponseWriter, r *http.Request) {
-	if s.waClient == nil {
-		s.waClient = whatsapp.GlobalWA
+	s.mu.RLock()
+	wa := s.waClient
+	s.mu.RUnlock()
+
+	if wa == nil {
+		wa = whatsapp.GlobalWA
 	}
 
-	if s.waClient != nil {
-		err := s.waClient.Logout()
+	if wa != nil {
+		err := wa.Logout()
 		if err != nil {
 			log.Printf("Error logging out: %v", err)
 		}
