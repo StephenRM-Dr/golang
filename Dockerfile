@@ -7,6 +7,10 @@ RUN apk add --no-cache ca-certificates git
 
 # Copiamos las dependencias desde la raíz
 COPY go.mod go.sum ./
+
+# Truco: Forzamos la versión 1.24 en el servidor, ignorando si localmente se subió como 1.25
+RUN sed -i 's/^go .*/go 1.24/' go.mod
+
 RUN go mod download
 
 # Copiamos todo el contenido del backend (ya está en la raíz)
