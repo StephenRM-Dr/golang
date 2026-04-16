@@ -5,12 +5,12 @@ WORKDIR /app
 # Instalar dependencias necesarias
 RUN apk add --no-cache ca-certificates git
 
-# Copiamos las dependencias desde la subcarpeta brailer
-COPY brailer/go.mod brailer/go.sum ./
+# Copiamos las dependencias desde la raíz
+COPY go.mod go.sum ./
 RUN go mod download
 
-# Copiamos todo el contenido de la subcarpeta del backend
-COPY brailer/ .
+# Copiamos todo el contenido del backend (ya está en la raíz)
+COPY . .
 
 # Deshabilitar CGO para máxima compatibilidad cloud
 ENV CGO_ENABLED=0
