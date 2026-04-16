@@ -1,9 +1,9 @@
 FROM golang:1.22-alpine
 
-# Instalar dependencias necesarias para SQLite y compilación de CGO
-RUN apk add --no-cache gcc musl-dev sqlite-dev
-
 WORKDIR /app
+
+# Instalar dependencias necesarias para CA y git
+RUN apk add --no-cache ca-certificates git
 
 # Copiar archivos de dependencias
 COPY go.mod go.sum ./
@@ -12,11 +12,11 @@ RUN go mod download
 # Copiar el resto del código
 COPY . .
 
-# Habilitar CGO para go-sqlite3 si es necesario (el backend usa SQLite para la sesión de WhatsApp)
-ENV CGO_ENABLED=1
+# Deshabilitar CGO para una compilación estática y compatible (usamos PostgreSQL/modernc)
+ENV CGO_ENABLED=0
 
-# Compilar la aplicación
-RUN go build -o main .
+# Compilar la aplicación de forma estática
+RUN go build -v -o main .
 
 # Crear directorio para subidas y datos persistentes
 RUN mkdir -p cargas-brailer
