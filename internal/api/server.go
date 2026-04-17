@@ -23,12 +23,15 @@ type Server struct {
 	db       *sql.DB
 	waClient *whatsapp.WAClient
 	mu       sync.RWMutex // Protege el acceso a waClient
+	sending  map[int]bool // Trackea transacciones en proceso de envío
+	smu      sync.Mutex   // Protege el acceso al mapa 'sending'
 }
 
 func NewServer(database *sql.DB, wa *whatsapp.WAClient) *Server {
 	return &Server{
 		db:       database,
 		waClient: wa,
+		sending:  make(map[int]bool),
 	}
 }
 
@@ -257,10 +260,30 @@ func (s *Server) handleSendWhatsApp(w http.ResponseWriter, r *http.Request) {
 		targetJID = recipient
 	}
 
+	// Control de duplicados: evitar enviar la misma transacción si ya está en proceso
+	s.smu.Lock()
+	if s.sending[id] {
+		s.smu.Unlock()
+		log.Printf("⚠️  Envío duplicado omitido para ID %d", id)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "processing", "message": "Already sending"})
+		return
+	}
+	s.sending[id] = true
+	s.smu.Unlock()
+
 	go func() {
+		defer func() {
+			s.smu.Lock()
+			delete(s.sending, id)
+			s.smu.Unlock()
+		}()
+
 		err := wa.SendTransaction(targetJID, t)
 		if err != nil {
-			log.Printf("Error sending WhatsApp ID %d: %v", id, err)
+			log.Printf("❌ Error enviando WhatsApp ID %d: %v", id, err)
+		} else {
+			log.Printf("✅ WhatsApp ID %d enviado con éxito.", id)
 		}
 	}()
 

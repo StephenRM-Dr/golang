@@ -141,10 +141,10 @@ func (wa *WAClient) Logout() error {
 
 // SendTransaction envía una transacción estructurada a un destinatario (JID).
 func (wa *WAClient) SendTransaction(recipient string, t models.Transaccion) error {
-	fmt.Printf("📩 Intentando enviar transacción ID %d a '%s'...\n", t.ID, recipient)
+	fmt.Printf("📩 [WA] Iniciando proceso para ID %d -> Destinatario: %s\n", t.ID, recipient)
 	jid, err := types.ParseJID(recipient)
 	if err != nil {
-		fmt.Printf("❌ Error parseando JID '%s': %v\n", recipient, err)
+		fmt.Printf("❌ [WA] Error parseando JID '%s': %v\n", recipient, err)
 		return err
 	}
 
@@ -157,57 +157,68 @@ func (wa *WAClient) SendTransaction(recipient string, t models.Transaccion) erro
 		"*Ciudad:* %s\n",
 		t.FechaPago, t.Descripcion, t.Monto, t.Referencia, t.Banco, t.Ciudad)
 
-	fmt.Printf("📝 Mensaje preparado para ID %d. JID Destino: %s\n", t.ID, jid.String())
-
-	// Si hay imagen, enviarla primero o junto al mensaje
+	// Si hay imagen, intentar enviarla
 	if t.ImagenPath != "" {
 		localPath := t.ImagenPath
 		// Si es una ruta web (/uploads/...), convertir a ruta local
-		if len(t.ImagenPath) > 9 && t.ImagenPath[:9] == "/uploads/" {
-			localPath = filepath.Join("cargas-brailer", t.ImagenPath[9:])
+		if strings.Contains(t.ImagenPath, "/uploads/") {
+			parts := strings.Split(t.ImagenPath, "/uploads/")
+			fileName := parts[len(parts)-1]
+			localPath = filepath.Join("cargas-brailer", fileName)
 		}
 		
+		fmt.Printf("🔍 [WA] Buscando imagen local: %s\n", localPath)
 		data, err := os.ReadFile(localPath)
 		if err == nil {
-			ext := filepath.Ext(t.ImagenPath)
+			ext := filepath.Ext(localPath)
 			mimeType := mime.TypeByExtension(ext)
 			if mimeType == "" {
 				mimeType = http.DetectContentType(data)
 			}
 
-			fmt.Printf("📤 Subiendo imagen: %s (%d bytes)...\n", t.ImagenPath, len(data))
+			fmt.Printf("📤 [WA] Subiendo imagen a WhatsApp (%d bytes)...\n", len(data))
 			resp, err := wa.Client.Upload(context.Background(), data, whatsmeow.MediaImage)
 			if err != nil {
-				return fmt.Errorf("error al subir imagen a servidores de WA: %v", err)
-			}
-			fmt.Println("✅ Imagen subida con éxito.")
+				fmt.Printf("⚠️  [WA] Error al subir imagen (ID %d): %v. Reintentando solo texto...\n", t.ID, err)
+				// NO retornamos aquí, dejamos que intente enviar el texto abajo
+			} else {
+				fmt.Printf("✅ [WA] Imagen subida. URL: %s\n", resp.URL)
 
-			imageMsg := &waE2E.ImageMessage{
-				Caption:       proto.String(messageText),
-				Mimetype:      proto.String(mimeType),
-				URL:           proto.String(resp.URL),
-				DirectPath:    proto.String(resp.DirectPath),
-				MediaKey:      resp.MediaKey,
-				FileLength:    proto.Uint64(uint64(len(data))),
-				FileSHA256:    resp.FileSHA256,
-				FileEncSHA256: resp.FileEncSHA256,
+				imageMsg := &waE2E.ImageMessage{
+					Caption:       proto.String(messageText),
+					Mimetype:      proto.String(mimeType),
+					URL:           proto.String(resp.URL),
+					DirectPath:    proto.String(resp.DirectPath),
+					MediaKey:      resp.MediaKey,
+					FileLength:    proto.Uint64(uint64(len(data))),
+					FileSHA256:    resp.FileSHA256,
+					FileEncSHA256: resp.FileEncSHA256,
+				}
+				
+				fmt.Printf("📤 [WA] Enviando mensaje con imagen (ID %d)...\n", t.ID)
+				_, err = wa.Client.SendMessage(context.Background(), jid, &waE2E.Message{
+					ImageMessage: imageMsg,
+				})
+				if err == nil {
+					fmt.Printf("✅ [WA] Mensaje con imagen (ID %d) enviado con éxito.\n", t.ID)
+					return nil
+				}
+				fmt.Printf("⚠️  [WA] Error enviando imagen (ID %d): %v. Reintentando solo texto...\n", t.ID, err)
 			}
-			_, err = wa.Client.SendMessage(context.Background(), jid, &waE2E.Message{
-				ImageMessage: imageMsg,
-			})
-			return err
 		} else {
-			fmt.Printf("⚠️ No se pudo leer el archivo de imagen: %v\n", err)
+			fmt.Printf("⚠️  [WA] No se pudo leer el archivo (ID %d): %v. Path: %s\n", t.ID, err, localPath)
 		}
 	}
 
-	// Si no hay imagen o falló el envío con imagen, enviar solo texto
-	fmt.Printf("📤 Enviando mensaje de texto para ID %d...\n", t.ID)
+	// Fallback: Si no hay imagen, falló el envío o falló la subida, enviar solo texto
+	fmt.Printf("📤 [WA] Enviando mensaje de texto (ID %d)...\n", t.ID)
 	_, err = wa.Client.SendMessage(context.Background(), jid, &waE2E.Message{
 		Conversation: proto.String(messageText),
 	})
 	if err == nil {
-		fmt.Printf("✅ Mensaje (Texto) ID %d enviado con éxito.\n", t.ID)
+		fmt.Printf("✅ [WA] Mensaje de texto (ID %d) enviado con éxito.\n", t.ID)
+	} else {
+		fmt.Printf("❌ [WA] Error final enviando ID %d: %v\n", t.ID, err)
 	}
 	return err
 }

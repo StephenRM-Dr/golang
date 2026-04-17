@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"example.com/m/v2/internal/api"
 	"example.com/m/v2/internal/db"
@@ -56,6 +57,21 @@ func main() {
 		waClient = client
 		apiServer.SetWhatsAppClient(waClient)
 		fmt.Println("\n✅ WhatsApp Conectado.")
+	}()
+
+	// Mantener la Base de Datos "caliente" (Keep-alive) para evitar auto-suspend de Neon
+	go func() {
+		for {
+			time.Sleep(2 * time.Minute)
+			if database != nil {
+				err := database.Ping()
+				if err != nil {
+					fmt.Printf("⚠️  Keep-alive: Error al conectar con DB: %v\n", err)
+				} else {
+					fmt.Println("保持 (Keep-alive): DB activa")
+				}
+			}
+		}
 	}()
 
 	// Solo ejecutar el loop interactivo si estamos en una terminal (TTY)
