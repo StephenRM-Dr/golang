@@ -1,6 +1,7 @@
 # Binarios y Ejecutables
 *.exe
 brailer/brailer.exe
+brailer/test_bin
 
 # WhatsApp y Persistencia
 *.db
