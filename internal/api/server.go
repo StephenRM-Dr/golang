@@ -248,6 +248,7 @@ func (s *Server) handleSendWhatsApp(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(recipient, "@") {
 		jid, err := s.waClient.GetGroupJIDByName(recipient)
 		if err != nil {
+			log.Printf("❌ Error: Grupo '%s' no encontrado: %v", recipient, err)
 			http.Error(w, "Group not found", http.StatusNotFound)
 			return
 		}
@@ -285,6 +286,11 @@ func (s *Server) handleWhatsAppStatus(w http.ResponseWriter, r *http.Request) {
 	if wa != nil {
 		status["connected"] = wa.IsConnected
 		status["qr"] = wa.QRCode
+		status["last_error"] = wa.LastError
+		if wa.IsConnected {
+			groups, _ := wa.GetJoinedGroupsNames()
+			status["groups"] = groups
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

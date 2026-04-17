@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"example.com/m/v2/internal/models"
 	"github.com/mdp/qrterminal/v3"
-	_ "github.com/lib/pq" // Driver de Postgres
+	_ "github.com/jackc/pgx/v5/stdlib" // Driver de Postgres (pgx)
+	_ "github.com/lib/pq"              // Driver de Postgres (alternativo)
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/store/sqlstore"
@@ -30,6 +32,7 @@ type WAClient struct {
 	Client      *whatsmeow.Client
 	QRCode      string
 	IsConnected bool
+	LastError   string
 }
 
 var (
@@ -48,9 +51,10 @@ func Connect() (*WAClient, error) {
 		// Intentar usar PostgreSQL (Neon) para persistencia en la nube
 		pgUrl := os.Getenv("DATABASE_URL")
 		if pgUrl != "" {
-			driver = "postgres"
-			dsn = pgUrl
-			fmt.Println("🚀 WhatsApp: Usando PostgreSQL para persistencia de sesión.")
+			// USAR PGX PARA MEJOR COMPATIBILIDAD CON POOLERS Y BINARY DATA
+			driver = "pgx"
+			dsn = sanitizeDSN(pgUrl)
+			fmt.Printf("🚀 WhatsApp: Usando PostgreSQL (pgx) para persistencia de sesión. (Host: %s)\n", getHostFromDSN(dsn))
 		} else {
 			// Fallback local a SQLite
 			dbPath := os.Getenv("WA_DB_PATH")
@@ -104,10 +108,12 @@ func Connect() (*WAClient, error) {
 	} else {
 		err = client.Connect()
 		if err != nil {
+			wa.LastError = err.Error()
 			return nil, err
 		}
 		wa.IsConnected = true
-		fmt.Println("✅ WhatsApp reconectado automáticamente.")
+		wa.LastError = ""
+		fmt.Printf("✅ WhatsApp reconectado automáticamente as %s.\n", deviceStore.ID.String())
 	}
 
 	return wa, nil
@@ -135,8 +141,10 @@ func (wa *WAClient) Logout() error {
 
 // SendTransaction envía una transacción estructurada a un destinatario (JID).
 func (wa *WAClient) SendTransaction(recipient string, t models.Transaccion) error {
+	fmt.Printf("📩 Intentando enviar transacción ID %d a '%s'...\n", t.ID, recipient)
 	jid, err := types.ParseJID(recipient)
 	if err != nil {
+		fmt.Printf("❌ Error parseando JID '%s': %v\n", recipient, err)
 		return err
 	}
 
@@ -148,6 +156,8 @@ func (wa *WAClient) SendTransaction(recipient string, t models.Transaccion) erro
 		"*Banco:* %s\n"+
 		"*Ciudad:* %s\n",
 		t.FechaPago, t.Descripcion, t.Monto, t.Referencia, t.Banco, t.Ciudad)
+
+	fmt.Printf("📝 Mensaje preparado para ID %d. JID Destino: %s\n", t.ID, jid.String())
 
 	// Si hay imagen, enviarla primero o junto al mensaje
 	if t.ImagenPath != "" {
@@ -192,9 +202,13 @@ func (wa *WAClient) SendTransaction(recipient string, t models.Transaccion) erro
 	}
 
 	// Si no hay imagen o falló el envío con imagen, enviar solo texto
+	fmt.Printf("📤 Enviando mensaje de texto para ID %d...\n", t.ID)
 	_, err = wa.Client.SendMessage(context.Background(), jid, &waE2E.Message{
 		Conversation: proto.String(messageText),
 	})
+	if err == nil {
+		fmt.Printf("✅ Mensaje (Texto) ID %d enviado con éxito.\n", t.ID)
+	}
 	return err
 }
 
@@ -212,4 +226,36 @@ func (wa *WAClient) GetGroupJIDByName(name string) (types.JID, error) {
 	}
 
 	return types.EmptyJID, fmt.Errorf("grupo '%s' no encontrado", name)
+}
+
+// GetJoinedGroupsNames devuelve una lista de nombres de grupos unidos.
+func (wa *WAClient) GetJoinedGroupsNames() ([]string, error) {
+	groups, err := wa.Client.GetJoinedGroups(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	for _, g := range groups {
+		names = append(names, g.Name)
+	}
+	return names, nil
+}
+
+// sanitizeDSN elimina el sufijo '-pooler' de los hosts de Neon para WhatsApp, 
+// ya que whatsmeow requiere Session Mode para manejar correctamente los prepared statements y llaves criptográficas.
+func sanitizeDSN(dsn string) string {
+	if strings.Contains(dsn, "-pooler") {
+		return strings.Replace(dsn, "-pooler", "", 1)
+	}
+	return dsn
+}
+
+// getHostFromDSN extrae el hostname para fines de logging
+func getHostFromDSN(dsn string) string {
+	parts := strings.Split(dsn, "@")
+	if len(parts) > 1 {
+		hostPart := strings.Split(parts[1], "/")[0]
+		return hostPart
+	}
+	return "unknown"
 }
