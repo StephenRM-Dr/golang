@@ -14,6 +14,7 @@ Koyeb es ideal porque permite procesos persistentes. Gracias a que migramos la s
     *   **Instance Size:** Nano (Capa gratuita).
 3.  **Variables de Entorno:**
     *   `DATABASE_URL`: Tu URL completa de Neon (PostgreSQL).
+    *   `WA_DB_PATH`: `/data/whatsapp.db`.
     *   `PORT`: `8080`.
 4.  **Dominio:** Copia la URL que te asigne Koyeb (ej. `brailer-api-user.koyeb.app`).
 

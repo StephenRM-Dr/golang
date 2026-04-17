@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine
+FROM golang:1.25-alpine
 
 WORKDIR /app
 
@@ -25,9 +25,9 @@ RUN go build -v -o main .
 # Crear directorio para subidas y datos temporales
 RUN mkdir -p cargas-brailer
 
-# Koyeb usa el puerto 8000 en tu configuración actual
-EXPOSE 8000
-ENV PORT=8000
+# Koyeb usa el puerto 8080 en tu configuración actual
+EXPOSE 8080
+ENV PORT=8080
 
 # Ejecutar el binario compilado
 CMD ["./main"]
