@@ -167,43 +167,76 @@ func (wa *WAClient) SendTransaction(recipient string, t models.Transaccion) erro
 			localPath = filepath.Join("cargas-brailer", fileName)
 		}
 		
-		fmt.Printf("🔍 [WA] Buscando imagen local: %s\n", localPath)
+		fmt.Printf("🔍 [WA] Buscando archivo local: %s\n", localPath)
 		data, err := os.ReadFile(localPath)
 		if err == nil {
-			ext := filepath.Ext(localPath)
+			ext := strings.ToLower(filepath.Ext(localPath))
 			mimeType := mime.TypeByExtension(ext)
-			if mimeType == "" {
-				mimeType = http.DetectContentType(data)
+			if mimeType == "" || mimeType == "application/octet-stream" {
+				switch ext {
+				case ".pdf":
+					mimeType = "application/pdf"
+				case ".rar":
+					mimeType = "application/x-rar-compressed"
+				case ".zip":
+					mimeType = "application/zip"
+				case ".7z":
+					mimeType = "application/x-7z-compressed"
+				default:
+					if mimeType == "" {
+						mimeType = http.DetectContentType(data)
+					}
+				}
 			}
 
-			fmt.Printf("📤 [WA] Subiendo imagen a WhatsApp (%d bytes)...\n", len(data))
-			resp, err := wa.Client.Upload(context.Background(), data, whatsmeow.MediaImage)
-			if err != nil {
-				fmt.Printf("⚠️  [WA] Error al subir imagen (ID %d): %v. Reintentando solo texto...\n", t.ID, err)
-				// NO retornamos aquí, dejamos que intente enviar el texto abajo
-			} else {
-				fmt.Printf("✅ [WA] Imagen subida. URL: %s\n", resp.URL)
+			// Determinar si es imagen o documento
+			isImage := strings.HasPrefix(mimeType, "image/")
+			mediaType := whatsmeow.MediaImage
+			if !isImage {
+				mediaType = whatsmeow.MediaDocument
+			}
 
-				imageMsg := &waE2E.ImageMessage{
-					Caption:       proto.String(messageText),
-					Mimetype:      proto.String(mimeType),
-					URL:           proto.String(resp.URL),
-					DirectPath:    proto.String(resp.DirectPath),
-					MediaKey:      resp.MediaKey,
-					FileLength:    proto.Uint64(uint64(len(data))),
-					FileSHA256:    resp.FileSHA256,
-					FileEncSHA256: resp.FileEncSHA256,
+			fmt.Printf("📤 [WA] Subiendo archivo (%s) a WhatsApp (%d bytes)...\n", mediaType, len(data))
+			resp, err := wa.Client.Upload(context.Background(), data, mediaType)
+			if err != nil {
+				fmt.Printf("⚠️  [WA] Error al subir archivo (ID %d): %v. Reintentando solo texto...\n", t.ID, err)
+			} else {
+				fmt.Printf("✅ [WA] Archivo subido. URL: %s\n", resp.URL)
+
+				var msg waE2E.Message
+				if isImage {
+					msg.ImageMessage = &waE2E.ImageMessage{
+						Caption:       proto.String(messageText),
+						Mimetype:      proto.String(mimeType),
+						URL:           proto.String(resp.URL),
+						DirectPath:    proto.String(resp.DirectPath),
+						MediaKey:      resp.MediaKey,
+						FileLength:    proto.Uint64(uint64(len(data))),
+						FileSHA256:    resp.FileSHA256,
+						FileEncSHA256: resp.FileEncSHA256,
+					}
+				} else {
+					// Para documentos (PDF, RAR, ZIP)
+					msg.DocumentMessage = &waE2E.DocumentMessage{
+						Caption:       proto.String(messageText),
+						Mimetype:      proto.String(mimeType),
+						URL:           proto.String(resp.URL),
+						DirectPath:    proto.String(resp.DirectPath),
+						MediaKey:      resp.MediaKey,
+						FileLength:    proto.Uint64(uint64(len(data))),
+						FileSHA256:    resp.FileSHA256,
+						FileEncSHA256: resp.FileEncSHA256,
+						FileName:      proto.String(filepath.Base(localPath)),
+					}
 				}
 				
-				fmt.Printf("📤 [WA] Enviando mensaje con imagen (ID %d)...\n", t.ID)
-				_, err = wa.Client.SendMessage(context.Background(), jid, &waE2E.Message{
-					ImageMessage: imageMsg,
-				})
+				fmt.Printf("📤 [WA] Enviando mensaje con adjunto (ID %d)...\n", t.ID)
+				_, err = wa.Client.SendMessage(context.Background(), jid, &msg)
 				if err == nil {
-					fmt.Printf("✅ [WA] Mensaje con imagen (ID %d) enviado con éxito.\n", t.ID)
+					fmt.Printf("✅ [WA] Mensaje con adjunto (ID %d) enviado con éxito.\n", t.ID)
 					return nil
 				}
-				fmt.Printf("⚠️  [WA] Error enviando imagen (ID %d): %v. Reintentando solo texto...\n", t.ID, err)
+				fmt.Printf("⚠️  [WA] Error enviando adjunto (ID %d): %v. Reintentando solo texto...\n", t.ID, err)
 			}
 		} else {
 			fmt.Printf("⚠️  [WA] No se pudo leer el archivo (ID %d): %v. Path: %s\n", t.ID, err, localPath)
