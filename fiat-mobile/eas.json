@@ -1,0 +1,28 @@
+{
+  "cli": {
+    "version": ">= 5.9.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+      }
+    },
+    "production": {
+      "env": {
+        "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

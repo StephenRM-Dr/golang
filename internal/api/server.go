@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync" // Añadido para manejo seguro del cliente de WhatsApp
 	"time"
+
 	"example.com/m/v2/internal/db"
 	"example.com/m/v2/internal/export"
 	"example.com/m/v2/internal/models"
@@ -55,11 +56,11 @@ func (s *Server) Start(port string) error {
 	corsMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log.Printf("📡 [API] %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
-			
+
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-			
+
 			if r.Method == "OPTIONS" {
 				w.WriteHeader(http.StatusOK)
 				return
@@ -74,12 +75,12 @@ func (s *Server) Start(port string) error {
 	mux.HandleFunc("/api/whatsapp/status", s.handleWhatsAppStatus)
 	mux.HandleFunc("/api/whatsapp/logout", s.handleWhatsAppLogout)
 	mux.HandleFunc("/api/export", s.handleExport)
-	
+
 	// Servir imágenes estáticas
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir))))
 
 	fmt.Printf("🚀 API Server running on http://192.168.1.5:%s\n", port)
-	return http.ListenAndServe("0.0.0.0:"+port, corsMiddleware(mux))
+	return http.ListenAndServe(":"+port, corsMiddleware(mux))
 }
 
 func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
@@ -101,7 +102,7 @@ func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Invalid data", http.StatusBadRequest)
 				return
 			}
-			
+
 			if r.Method == "POST" {
 				if err := db.CreateTransaction(s.db, t); err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -139,11 +140,11 @@ func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
 		file, handler, err := r.FormFile("image")
 		if err == nil {
 			defer file.Close()
-			
+
 			ext := filepath.Ext(handler.Filename)
 			fileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
 			filePath := filepath.Join("cargas-brailer", fileName)
-			
+
 			dst, err := os.Create(filePath)
 			if err != nil {
 				http.Error(w, "Failed to save image", http.StatusInternalServerError)
@@ -176,7 +177,7 @@ func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid ID", http.StatusBadRequest)
 			return
 		}
-		
+
 		if err := db.DeleteTransaction(s.db, id); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -225,7 +226,7 @@ func (s *Server) handleSendWhatsApp(w http.ResponseWriter, r *http.Request) {
 
 	idStr := r.URL.Query().Get("id")
 	id, _ := strconv.Atoi(idStr)
-	
+
 	t, err := db.GetTransactionByID(s.db, id)
 	if err != nil {
 		http.Error(w, "Transaction not found", http.StatusNotFound)

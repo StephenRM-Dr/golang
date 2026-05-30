@@ -11,9 +11,7 @@
         ]
       }
     ]
-  }
-}
-{
+  },
   "mcpServers": {
     "graphify": {
       "command": "python",
