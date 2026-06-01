@@ -11,5 +11,6 @@ export const BANKS = [
   "13 bicentenario carolina", "14 sofitasa mundovinyl", "15 sofitasa textivinyl",
   "16 venezuela ruben", "17 banesco esteban", "18 venezuela brailer",
   "19 pascualino", "20 caja dolares", "21 caja bolivares", "22 cliente",
-  "23 Sin banco", "24 mercantil mundovinyl", "25 Plaza Mundovinyl", "26 Plaza Textivinyl"
+  "23 Sin banco", "24 mercantil mundovinyl", "25 Plaza Mundovinyl", "26 Plaza Textivinyl",
+  "27 Bancamiga Mundovinyl", "28 Bancamiga Merida", "29 Bancamiga Textivinyl"
 ];
